@@ -1,0 +1,15 @@
+#!/usr/bin/with-contenv bash
+
+PUID=${PUID:-0}
+PGID=${PGID:-0}
+
+groupmod -o -g "$PGID" abc
+usermod -o -u "$PUID" abc
+
+mkdir -p /tmp/cache
+chown -R abc:abc /tmp/cache
+
+echo "******** UID/GID ***********"
+echo "User uid:  $(id -u abc)"
+echo "User gid:  $(id -g abc)"
+echo "****************************"

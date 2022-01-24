@@ -1,0 +1,6 @@
+#!/usr/bin/with-contenv bash
+
+echo "running as: $(id -u abc) $(id -g abc)"
+
+cd /opt/frigate/
+exec s6-setuidgid abc python3 -u -m frigate
