@@ -6,7 +6,7 @@
 docker run -d \
   --name frigate \
   --mount type=tmpfs,target=/tmp,tmpfs-size=805306368 \
-  -v ~/src/frigate/media:/media/frigate \
+  -v /srv/shinobi/videos2/videos2:/media/frigate \
   -v ~/src/frigate/config:/config \
   -v /etc/localtime:/etc/localtime:ro \
   -e FRIGATE_CAM_UN=frigate \
