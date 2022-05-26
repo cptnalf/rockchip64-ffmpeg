@@ -63,6 +63,7 @@ ARG         MAKEFLAGS="-j2"
 ARG         PKG_CONFIG_PATH="/opt/ffmpeg/share/pkgconfig:/opt/ffmpeg/lib/pkgconfig:/opt/ffmpeg/lib64/pkgconfig"
 ARG         PREFIX=/opt/ffmpeg
 ARG         LD_LIBRARY_PATH="/opt/ffmpeg/lib:/opt/ffmpeg/lib64:/usr/lib64:/usr/lib:/lib64:/lib"
+ARG  KERNEL_HEADER_BASE=/tmp/lnx-rc-hdrs
 
 # libudev-dev is required for v4l2
 RUN     buildDeps="autoconf \
@@ -407,9 +408,24 @@ RUN \
         cd ${DIR} && \
         git clone -b rockchip-2.4.97-debian10 https://github.com/xiaoshzx/libdrm-rockchip-1 libdrm-rockchip \
         && git clone https://github.com/rockchip-linux/mpp && \
-        cd libdrm-rockchip && bash autogen.sh && ./configure && make && make install && \
+        cd libdrm-rockchip \
+        && bash autogen.sh \
+        && ./configure --enable-rockchip-experimental-api --enable-udev \
+        && make && make install && \
         cd ../mpp && cmake -DRKPLATFORM=ON -DHAVE_DRM=ON && make -j6 && make install && \
         rm -rf ${DIR}
+
+# ADD http://armbian.tnahosting.net/apt/pool/main/l/linux-5.15.25-rockchip64/linux-headers-current-rockchip64_22.02.1_arm64.deb /tmp/workdir/
+# RUN \
+#        apt install -yq bison flex --no-install-recommends \
+#        && dpkg -i /tmp/workdir/linux-headers-current-rockchip64_22.02.1_arm64.deb
+
+COPY kernel-headers /tmp/kernel-headers
+RUN \
+        if [ "x${FFMPEG_BRANCH_VER}" = "x4.3.2" ]; then \
+         cp -r /tmp/kernel-headers/5.15.25/include ${KERNEL_HEADER_BASE}/ ; \
+        else cp -r /tmp/kernel-headers/5.17.5/include ${KERNEL_HEADER_BASE}/ ; \
+        fi
 
 # trying out v4l2-request-hwaccel version for rk3399 stuffs.
 # only works for 5.10/14+ kernels (?)
@@ -419,18 +435,6 @@ RUN  \
         git clone --branch v4l2-request-hwaccel-${FFMPEG_BRANCH_VER} https://github.com/jernejsk/FFmpeg.git ffmpeg
 #        curl -sLO https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.bz2 && \
 #        tar -jx --strip-components=1 -f ffmpeg-${FFMPEG_VERSION}.tar.bz2
-
-ADD http://armbian.tnahosting.net/apt/pool/main/l/linux-5.15.25-rockchip64/linux-headers-current-rockchip64_22.02.1_arm64.deb /tmp/workdir/
-RUN \
-        apt install -yq bison flex --no-install-recommends \
-        && dpkg -i /tmp/workdir/linux-headers-current-rockchip64_22.02.1_arm64.deb
-
-RUN \
-        DIR=/usr/src/linux-headers-5.15.25-rockchip64 \
-        && mkdir -p /tmp/lnx-rc-hdrs/ \
-        && cd ${DIR} \
-        && apt install -yq --no-install-recommends rsync \
-        && make INSTALL_HDR_PATH=/tmp/lnx-rc-hdrs headers_install
 
 RUN \
         DIR=/tmp/ffmpeg && mkdir -p ${DIR} && cd ${DIR} && \
@@ -478,7 +482,7 @@ RUN \
         --enable-v4l2-request \
         --enable-libudev \
         --enable-neon \
-        --extra-cflags="-I${PREFIX}/include -I/tmp/lnx-rc-hdrs/include" \
+        --extra-cflags="-I${PREFIX}/include -I/tmp/kernel-headers/5.17.5/include" \
         --extra-ldflags="-L${PREFIX}/lib" && \
         make -j $(nproc) && \
         make -j $(nproc) install && \

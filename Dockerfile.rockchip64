@@ -1,0 +1,23 @@
+FROM cptnalf/ffmpeg-rockchip64:4.4-request as src
+
+FROM blakeblackshear/frigate:0.10.1-aarch64 AS base
+
+LABEL maintainer "blakeb@blakeshome.com"
+LABEL maintainer "captainalf@gmail.com"
+
+# copy over the rk/v4l2request-enabled FFMPEG
+COPY --from=src /usr/local/ /usr/local/
+
+ENV         LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:/usr/lib:/usr/lib64:/lib:/lib64
+
+# add the local-user
+RUN \
+  useradd --uid 911 --user-group --create-home abc
+
+# copy over the edited startup files.
+COPY rootfs/ /
+
+ENTRYPOINT [ "/init" ]
+CMD ["python3", "-u", "-m", "frigate"]
+
+# tag cptnalf/frigate-jetson:0.10.0
