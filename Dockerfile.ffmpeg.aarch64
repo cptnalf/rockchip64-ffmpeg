@@ -18,9 +18,9 @@ RUN     apt-get -yqq update && \
 FROM base as build
 ARG FFMPEG_BRANCH_VER
 
-ENV     FFMPEG_VERSION=4.3.2 \
+ENV     FFMPEG_VERSION=${FFMPEG_BRANCH_VER} \
         AOM_VERSION=v1.0.0 \
-        FDKAAC_VERSION=0.1.5 \
+        FDKAAC_VERSION=2.0.1 \
         FREETYPE_VERSION=2.11.0 \
         FRIBIDI_VERSION=0.19.7 \
         # 2.1.0 i think is required for ffmpeg 4.4.
@@ -36,7 +36,7 @@ ENV     FFMPEG_VERSION=4.3.2 \
         OPENJPEG_VERSION=2.1.2 \
         THEORA_VERSION=1.1.1 \
         VORBIS_VERSION=1.3.5 \
-        VPX_VERSION=1.8.0 \
+        VPX_VERSION=1.11.0 \
         WEBP_VERSION=1.0.2 \
         X264_VERSION=20170226-2245-stable \
         X265_VERSION=3.1.1 \
@@ -103,16 +103,18 @@ RUN \
         make -j $(nproc) install && \
         rm -rf ${DIR}
 ## x264 http://www.videolan.org/developers/x264.html
+## switch to using the 'stable' x264 branch.
 RUN \
         DIR=/tmp/x264 && \
         mkdir -p ${DIR} && \
         cd ${DIR} && \
-        curl -sL https://download.videolan.org/pub/videolan/x264/snapshots/x264-snapshot-${X264_VERSION}.tar.bz2 | \
+        curl -sL https://code.videolan.org/videolan/x264/-/archive/stable/x264-stable.tar.bz2 | \
         tar -jx --strip-components=1 && \
         ./configure --prefix="${PREFIX}" --enable-shared --enable-pic --disable-cli && \
         make -j $(nproc) && \
         make -j $(nproc) install && \
         rm -rf ${DIR}
+        
 ### x265 http://x265.org/
 RUN \
         DIR=/tmp/x265 && \
@@ -424,7 +426,7 @@ COPY kernel-headers /tmp/kernel-headers
 RUN \
         if [ "x${FFMPEG_BRANCH_VER}" = "x4.3.2" ]; then \
          cp -r /tmp/kernel-headers/5.15.25/include ${KERNEL_HEADER_BASE}/ ; \
-        else cp -r /tmp/kernel-headers/5.17.5/include ${KERNEL_HEADER_BASE}/ ; \
+        else cp -r /tmp/kernel-headers/5.18.0/include ${KERNEL_HEADER_BASE}/ ; \
         fi
 
 # trying out v4l2-request-hwaccel version for rk3399 stuffs.
