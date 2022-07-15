@@ -85,6 +85,7 @@ RUN     buildDeps="autoconf \
         libssl-dev \
         libudev-dev \
         yasm \
+        meson ninja-build \
         linux-headers-raspi2 \
         libomxil-bellagio-dev \
         zlib1g-dev" && \
@@ -404,18 +405,36 @@ RUN \
 
 #        git clone https://github.com/rockchip-linux/libdrm-rockchip && git clone https://github.com/rockchip-linux/mpp && \
 # rockchip removed libdrm-rockchip, so trying out xiaoshzx's copy.
+#RUN \
+#        DIR=/tmp/rkmpp && \
+#        mkdir -p ${DIR} && \
+#        cd ${DIR} && \
+#        git clone -b rockchip-2.4.97-debian10 https://github.com/xiaoshzx/libdrm-rockchip-1 libdrm-rockchip \
+#        && git clone https://github.com/rockchip-linux/mpp && \
+#        cd libdrm-rockchip \
+#        && bash autogen.sh \
+#        && ./configure --enable-rockchip-experimental-api --enable-udev \
+#        && make && make install && \
+#        cd ../mpp && cmake -DRKPLATFORM=ON -DHAVE_DRM=ON && make -j6 && make install && \
+#        rm -rf ${DIR}
+
+# mpp for rock-chip. libdrm->rockchip isn't accessible anymore.
+# 2.4.106 is the last version which compiles with < 0.46 of meson.
+#  ubuntu 18 includes 0.45, which is what jetpack/nvidia containers have.
+	#&& git clone https://github.com/rockchip-linux/libdrm-rockchip \
+
 RUN \
         DIR=/tmp/rkmpp && \
         mkdir -p ${DIR} && \
-        cd ${DIR} && \
-        git clone -b rockchip-2.4.97-debian10 https://github.com/xiaoshzx/libdrm-rockchip-1 libdrm-rockchip \
-        && git clone https://github.com/rockchip-linux/mpp && \
-        cd libdrm-rockchip \
-        && bash autogen.sh \
-        && ./configure --enable-rockchip-experimental-api --enable-udev \
-        && make && make install && \
-        cd ../mpp && cmake -DRKPLATFORM=ON -DHAVE_DRM=ON && make -j6 && make install && \
-        rm -rf ${DIR}
+        cd ${DIR} \
+	&& git clone -b libdrm-2.4.106 https://gitlab.freedesktop.org/mesa/drm.git \
+	&& git clone https://github.com/rockchip-linux/mpp && \
+        cd drm \
+	&& mkdir builddir/ \
+	&& meson builddir/ \
+	&& ninja -C builddir/ install \
+	#&& cd ../mpp && cmake -DRKPLATFORM=ON -DHAVE_DRM=ON && make -j6 && make install && \
+        && cd / && rm -rf ${DIR}
 
 # ADD http://armbian.tnahosting.net/apt/pool/main/l/linux-5.15.25-rockchip64/linux-headers-current-rockchip64_22.02.1_arm64.deb /tmp/workdir/
 # RUN \
@@ -474,7 +493,7 @@ RUN \
         --enable-libkvazaar \
         --enable-libaom \
         --extra-libs=-lpthread \
-        --enable-rkmpp \
+        #--enable-rkmpp \
         --enable-libdrm \
         # --enable-omx \
         # --enable-omx-rpi \
@@ -484,7 +503,7 @@ RUN \
         --enable-v4l2-request \
         --enable-libudev \
         --enable-neon \
-        --extra-cflags="-I${PREFIX}/include -I/tmp/kernel-headers/5.17.5/include" \
+        --extra-cflags="-I${PREFIX}/include -I${KERNEL_HEADER_BASE}/" \
         --extra-ldflags="-L${PREFIX}/lib" && \
         make -j $(nproc) && \
         make -j $(nproc) install && \
